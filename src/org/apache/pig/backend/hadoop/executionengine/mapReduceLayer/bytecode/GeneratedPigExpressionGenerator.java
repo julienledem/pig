@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.pig.data.DataType;
+
 public class GeneratedPigExpressionGenerator {
 
     static String method(BinaryOperator op, Type type) {
@@ -13,13 +15,13 @@ public class GeneratedPigExpressionGenerator {
     }
 
     static enum Type {
-        BOOLEAN("boolean", "Boolean") {
+        BOOLEAN(Boolean.TYPE, Boolean.class, DataType.BOOLEAN) {
             public String castFrom(Type t) {
                 switch (t) {
                 case TUPLE: case BAG: case MAP: case DATETIME:
                     return castError(t);
                 case BIGINTEGER: case BIGDECIMAL:
-                    return "return !" + t.type + ".ZERO.equals(v)";
+                    return "return !" + t.type.getName() + ".ZERO.equals(v)";
                 case CHARARRAY:
                     return "return v.equalsIgnoreCase(\"true\")";
                 case INT: case LONG: case FLOAT: case DOUBLE:
@@ -29,7 +31,7 @@ public class GeneratedPigExpressionGenerator {
                 }
             }
         },
-        INT("int", "Integer") {
+        INT(Integer.TYPE, Integer.class, DataType.INTEGER) {
             public String castFrom(Type t) {
                 switch (t) {
                 case TUPLE:
@@ -47,7 +49,7 @@ public class GeneratedPigExpressionGenerator {
                 }
             }
         },
-        LONG("long", "Long") {
+        LONG(Long.TYPE, Long.class, DataType.LONG) {
             public String castFrom(Type t) {
                 switch (t) {
                 case TUPLE:
@@ -65,7 +67,7 @@ public class GeneratedPigExpressionGenerator {
                 }
             }
         },
-        FLOAT("float", "Float") {
+        FLOAT(Float.TYPE, Float.class, DataType.FLOAT) {
             public String castFrom(Type t) {
                 switch (t) {
                 case TUPLE:
@@ -83,7 +85,7 @@ public class GeneratedPigExpressionGenerator {
                 }
             }
         },
-        DOUBLE("double", "Double") {
+        DOUBLE(Double.TYPE, Double.class, DataType.DOUBLE) {
             public String castFrom(Type t) {
                 switch (t) {
                 case TUPLE:
@@ -101,7 +103,7 @@ public class GeneratedPigExpressionGenerator {
                 }
             }
         },
-        CHARARRAY("String", true) {
+        CHARARRAY(String.class, true, DataType.CHARARRAY) {
             public String castFrom(Type t) {
                 switch (t) {
                 case CHARARRAY:
@@ -111,7 +113,7 @@ public class GeneratedPigExpressionGenerator {
                 }
             }
         },
-        BAG("org.apache.pig.data.DataBag", true) {
+        BAG(org.apache.pig.data.DataBag.class, true, DataType.BAG) {
             public String castFrom(Type t) {
                 switch (t) {
                 case TUPLE:
@@ -131,7 +133,7 @@ public class GeneratedPigExpressionGenerator {
                 }
             }
         },
-        DATETIME("org.joda.time.DateTime", true) {
+        DATETIME(org.joda.time.DateTime.class, true, DataType.DATETIME) {
             public String castFrom(Type t) {
                 switch (t) {
                 case TUPLE:
@@ -150,7 +152,7 @@ public class GeneratedPigExpressionGenerator {
                 }
             }
         },
-        TUPLE("org.apache.pig.data.Tuple", true) {
+        TUPLE(org.apache.pig.data.Tuple.class, true, DataType.TUPLE) {
             public String castFrom(Type t) {
                 switch (t) {
                 case MAP:
@@ -170,7 +172,7 @@ public class GeneratedPigExpressionGenerator {
                 }
             }
         },
-        MAP("java.util.Map", true) {
+        MAP(java.util.Map.class, true, DataType.MAP) {
             public String castFrom(Type t) {
                 switch (t) {
                 case TUPLE:
@@ -190,12 +192,12 @@ public class GeneratedPigExpressionGenerator {
                 }
             }
         },
-        BYTEARRAY("org.apache.pig.data.DataByteArray", true) {
+        BYTEARRAY(org.apache.pig.data.DataByteArray.class, true, DataType.BYTEARRAY) {
             public String castFrom(Type t) {
                 return castError(t);
             }
         },
-        BIGINTEGER("java.math.BigInteger", true) {
+        BIGINTEGER(java.math.BigInteger.class, true, DataType.BIGINTEGER) {
             public String castFrom(Type t) {
                 switch (t) {
                 case TUPLE:
@@ -218,7 +220,7 @@ public class GeneratedPigExpressionGenerator {
             }
         },
 
-        BIGDECIMAL("java.math.BigDecimal", true) {
+        BIGDECIMAL(java.math.BigDecimal.class, true, DataType.BIGDECIMAL) {
             public String castFrom(Type t) {
                 switch (t) {
                 case TUPLE:
@@ -245,28 +247,31 @@ public class GeneratedPigExpressionGenerator {
 
         public static final List<Type> comparableTypes = Arrays.asList(INT, LONG, FLOAT, DOUBLE, CHARARRAY);
 
-        public final String type;
+        public final Class<?> type;
 
         public final boolean comparable;
 
-        public final String boxed;
+        public final Class<?> boxed;
 
-        Type(String type) {
-            this(type, type, false);
+        public final byte pigType;
+
+        Type(Class<?> type, byte pigType) {
+            this(type, type, false, pigType);
         }
 
-        Type(String type, String boxed) {
-            this(type, boxed, false);
+        Type(Class<?> type, Class<?> boxed, byte pigType) {
+            this(type, boxed, false, pigType);
         }
 
-        Type(String type, boolean comparable) {
-            this(type, type, comparable);
+        Type(Class<?> type, boolean comparable, byte pigType) {
+            this(type, type, comparable, pigType);
         }
 
-        Type(String type, String boxed, boolean comparable) {
+        Type(Class<?> type, Class<?> boxed, boolean comparable, byte pigType) {
             this.type = type;
             this.boxed = boxed;
             this.comparable = comparable;
+            this.pigType = pigType;
         }
 
         public String op(CompOperator op) {
@@ -284,7 +289,7 @@ public class GeneratedPigExpressionGenerator {
                 }
                 return "return (v ? 1 : 0)";
             }
-            return "return (" + this.type + ")v";
+            return "return (" + this.type.getName() + ")v";
         }
 
         public String castError(Type t) {
@@ -323,12 +328,12 @@ public class GeneratedPigExpressionGenerator {
 
     }
 
-    static enum ArythmeticOperator implements BinaryOperator {
+    static enum ArithmeticOperator implements BinaryOperator {
         PLUS("+"), MINUS("-"), MUL("*"), DIV("/");
 
         private final String op;
 
-        ArythmeticOperator(String op) {
+        ArithmeticOperator(String op) {
             this.op = op;
         }
 
@@ -378,7 +383,7 @@ public class GeneratedPigExpressionGenerator {
         sb.append("  // boolean operators\n");
         generate(sb, BooleanOperator.values(), Arrays.asList(Type.BOOLEAN));
         sb.append("  // arithmetic operators\n");
-        generate(sb, ArythmeticOperator.values(), Type.numeric);
+        generate(sb, ArithmeticOperator.values(), Type.numeric);
         sb.append("  // comparison operators\n");
         generate(sb, CompOperator.values(), Type.comparableTypes);
         sb.append("  // cast operators\n");
@@ -398,9 +403,9 @@ public class GeneratedPigExpressionGenerator {
 
     private static void generateProj(StringBuilder sb, Type[] types) {
         for (Type type : types) {
-            sb.append("  public ").append(type.type).append(" proj_").append(type)
+            sb.append("  public ").append(type.type.getName()).append(" proj_").append(type)
                 .append("(org.apache.pig.data.Tuple t, int i) throws org.apache.pig.backend.executionengine.ExecException {\n");
-            sb.append("    return (" + type.boxed + ")t.get(i);\n");
+            sb.append("    return (" + type.boxed.getName() + ")t.get(i);\n");
             sb.append("  }\n");
             sb.append("\n");
         }
@@ -409,7 +414,7 @@ public class GeneratedPigExpressionGenerator {
 
     private static void generateAbstracts(StringBuilder sb, Type[] types) {
         for (Type type : types) {
-            sb.append("  public abstract ").append(type.type).append(" ")
+            sb.append("  public abstract ").append(type.type.getName()).append(" ")
                 .append("eval").append(type).append("(org.apache.pig.data.Tuple t);\n");
             sb.append("\n");
         }
@@ -419,7 +424,7 @@ public class GeneratedPigExpressionGenerator {
     private static void generateCast(StringBuilder sb, Type[] from, Type[] to) {
         for (Type t : to) {
             for (Type f : from) {
-                sb.append("  public ").append(t.type).append(" cast_").append(f).append("_to_").append(t).append("(").append(f.type).append(" v){\n");
+                sb.append("  public ").append(t.type.getName()).append(" cast_").append(f).append("_to_").append(t).append("(").append(f.type.getName()).append(" v){\n");
                 sb.append("    ").append(t.castFrom(f)).append(";\n");
                 sb.append("  }\n");
                 sb.append("\n");
@@ -431,9 +436,9 @@ public class GeneratedPigExpressionGenerator {
     private static void generate(StringBuilder sb, BinaryOperator[] operators, List<Type> types) {
         for (Type type : types) {
             for (BinaryOperator op : operators) {
-                sb.append("  public ").append(op.returnType(type).type).append(" ")
+                sb.append("  public ").append(op.returnType(type).type.getName()).append(" ")
                     .append(method(op, type))
-                        .append("(").append(type.type).append(" l, ").append(type.type).append(" r) {\n");
+                        .append("(").append(type.type.getName()).append(" l, ").append(type.type.getName()).append(" r) {\n");
                 sb.append("    return " + op.op(type) + ";\n");
                 sb.append("  }\n");
                 sb.append("\n");

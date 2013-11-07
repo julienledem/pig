@@ -11,7 +11,7 @@ public abstract class GeneratedPigExpression {
 
   public abstract double evalDOUBLE(org.apache.pig.data.Tuple t);
 
-  public abstract String evalCHARARRAY(org.apache.pig.data.Tuple t);
+  public abstract java.lang.String evalCHARARRAY(org.apache.pig.data.Tuple t);
 
   public abstract org.apache.pig.data.DataBag evalBAG(org.apache.pig.data.Tuple t);
 
@@ -202,27 +202,27 @@ public abstract class GeneratedPigExpression {
     return l != r;
   }
 
-  public boolean GT_CHARARRAY(String l, String r) {
+  public boolean GT_CHARARRAY(java.lang.String l, java.lang.String r) {
     return l.compareTo(r) > 0;
   }
 
-  public boolean LT_CHARARRAY(String l, String r) {
+  public boolean LT_CHARARRAY(java.lang.String l, java.lang.String r) {
     return l.compareTo(r) < 0;
   }
 
-  public boolean EQ_CHARARRAY(String l, String r) {
+  public boolean EQ_CHARARRAY(java.lang.String l, java.lang.String r) {
     return l.compareTo(r) == 0;
   }
 
-  public boolean GE_CHARARRAY(String l, String r) {
+  public boolean GE_CHARARRAY(java.lang.String l, java.lang.String r) {
     return l.compareTo(r) >= 0;
   }
 
-  public boolean LE_CHARARRAY(String l, String r) {
+  public boolean LE_CHARARRAY(java.lang.String l, java.lang.String r) {
     return l.compareTo(r) <= 0;
   }
 
-  public boolean NEQ_CHARARRAY(String l, String r) {
+  public boolean NEQ_CHARARRAY(java.lang.String l, java.lang.String r) {
     return l.compareTo(r) != 0;
   }
 
@@ -247,7 +247,7 @@ public abstract class GeneratedPigExpression {
     return v != 0;
   }
 
-  public boolean cast_CHARARRAY_to_BOOLEAN(String v){
+  public boolean cast_CHARARRAY_to_BOOLEAN(java.lang.String v){
     return v.equalsIgnoreCase("true");
   }
 
@@ -299,7 +299,7 @@ public abstract class GeneratedPigExpression {
     return (int)v;
   }
 
-  public int cast_CHARARRAY_to_INT(String v){
+  public int cast_CHARARRAY_to_INT(java.lang.String v){
     return Integer.parseInt(v);
   }
 
@@ -351,7 +351,7 @@ public abstract class GeneratedPigExpression {
     return (long)v;
   }
 
-  public long cast_CHARARRAY_to_LONG(String v){
+  public long cast_CHARARRAY_to_LONG(java.lang.String v){
     return Long.parseLong(v);
   }
 
@@ -403,7 +403,7 @@ public abstract class GeneratedPigExpression {
     return (float)v;
   }
 
-  public float cast_CHARARRAY_to_FLOAT(String v){
+  public float cast_CHARARRAY_to_FLOAT(java.lang.String v){
     return Float.parseFloat(v);
   }
 
@@ -455,7 +455,7 @@ public abstract class GeneratedPigExpression {
     return v;
   }
 
-  public double cast_CHARARRAY_to_DOUBLE(String v){
+  public double cast_CHARARRAY_to_DOUBLE(java.lang.String v){
     return Double.parseDouble(v);
   }
 
@@ -487,55 +487,55 @@ public abstract class GeneratedPigExpression {
     return v.doubleValue();
   }
 
-  public String cast_BOOLEAN_to_CHARARRAY(boolean v){
+  public java.lang.String cast_BOOLEAN_to_CHARARRAY(boolean v){
     return String.valueOf(v);
   }
 
-  public String cast_INT_to_CHARARRAY(int v){
+  public java.lang.String cast_INT_to_CHARARRAY(int v){
     return String.valueOf(v);
   }
 
-  public String cast_LONG_to_CHARARRAY(long v){
+  public java.lang.String cast_LONG_to_CHARARRAY(long v){
     return String.valueOf(v);
   }
 
-  public String cast_FLOAT_to_CHARARRAY(float v){
+  public java.lang.String cast_FLOAT_to_CHARARRAY(float v){
     return String.valueOf(v);
   }
 
-  public String cast_DOUBLE_to_CHARARRAY(double v){
+  public java.lang.String cast_DOUBLE_to_CHARARRAY(double v){
     return String.valueOf(v);
   }
 
-  public String cast_CHARARRAY_to_CHARARRAY(String v){
+  public java.lang.String cast_CHARARRAY_to_CHARARRAY(java.lang.String v){
     return v;
   }
 
-  public String cast_BAG_to_CHARARRAY(org.apache.pig.data.DataBag v){
+  public java.lang.String cast_BAG_to_CHARARRAY(org.apache.pig.data.DataBag v){
     return String.valueOf(v);
   }
 
-  public String cast_DATETIME_to_CHARARRAY(org.joda.time.DateTime v){
+  public java.lang.String cast_DATETIME_to_CHARARRAY(org.joda.time.DateTime v){
     return String.valueOf(v);
   }
 
-  public String cast_TUPLE_to_CHARARRAY(org.apache.pig.data.Tuple v){
+  public java.lang.String cast_TUPLE_to_CHARARRAY(org.apache.pig.data.Tuple v){
     return String.valueOf(v);
   }
 
-  public String cast_MAP_to_CHARARRAY(java.util.Map v){
+  public java.lang.String cast_MAP_to_CHARARRAY(java.util.Map v){
     return String.valueOf(v);
   }
 
-  public String cast_BYTEARRAY_to_CHARARRAY(org.apache.pig.data.DataByteArray v){
+  public java.lang.String cast_BYTEARRAY_to_CHARARRAY(org.apache.pig.data.DataByteArray v){
     return String.valueOf(v);
   }
 
-  public String cast_BIGINTEGER_to_CHARARRAY(java.math.BigInteger v){
+  public java.lang.String cast_BIGINTEGER_to_CHARARRAY(java.math.BigInteger v){
     return String.valueOf(v);
   }
 
-  public String cast_BIGDECIMAL_to_CHARARRAY(java.math.BigDecimal v){
+  public java.lang.String cast_BIGDECIMAL_to_CHARARRAY(java.math.BigDecimal v){
     return String.valueOf(v);
   }
 
@@ -559,7 +559,7 @@ public abstract class GeneratedPigExpression {
     throw new IllegalArgumentException("cast DOUBLE to BAG");
   }
 
-  public org.apache.pig.data.DataBag cast_CHARARRAY_to_BAG(String v){
+  public org.apache.pig.data.DataBag cast_CHARARRAY_to_BAG(java.lang.String v){
     throw new IllegalArgumentException("cast CHARARRAY to BAG");
   }
 
@@ -611,7 +611,7 @@ public abstract class GeneratedPigExpression {
     return new org.joda.time.DateTime((long)v);
   }
 
-  public org.joda.time.DateTime cast_CHARARRAY_to_DATETIME(String v){
+  public org.joda.time.DateTime cast_CHARARRAY_to_DATETIME(java.lang.String v){
     return new org.joda.time.DateTime(Long.valueOf(v));
   }
 
@@ -663,7 +663,7 @@ public abstract class GeneratedPigExpression {
     throw new IllegalArgumentException("cast DOUBLE to TUPLE");
   }
 
-  public org.apache.pig.data.Tuple cast_CHARARRAY_to_TUPLE(String v){
+  public org.apache.pig.data.Tuple cast_CHARARRAY_to_TUPLE(java.lang.String v){
     throw new IllegalArgumentException("cast CHARARRAY to TUPLE");
   }
 
@@ -715,7 +715,7 @@ public abstract class GeneratedPigExpression {
     throw new IllegalArgumentException("cast DOUBLE to MAP");
   }
 
-  public java.util.Map cast_CHARARRAY_to_MAP(String v){
+  public java.util.Map cast_CHARARRAY_to_MAP(java.lang.String v){
     throw new IllegalArgumentException("cast CHARARRAY to MAP");
   }
 
@@ -767,7 +767,7 @@ public abstract class GeneratedPigExpression {
     throw new IllegalArgumentException("cast DOUBLE to BYTEARRAY");
   }
 
-  public org.apache.pig.data.DataByteArray cast_CHARARRAY_to_BYTEARRAY(String v){
+  public org.apache.pig.data.DataByteArray cast_CHARARRAY_to_BYTEARRAY(java.lang.String v){
     throw new IllegalArgumentException("cast CHARARRAY to BYTEARRAY");
   }
 
@@ -819,7 +819,7 @@ public abstract class GeneratedPigExpression {
     return java.math.BigInteger.valueOf((long)v);
   }
 
-  public java.math.BigInteger cast_CHARARRAY_to_BIGINTEGER(String v){
+  public java.math.BigInteger cast_CHARARRAY_to_BIGINTEGER(java.lang.String v){
     return new java.math.BigInteger(v);
   }
 
@@ -871,7 +871,7 @@ public abstract class GeneratedPigExpression {
     return java.math.BigDecimal.valueOf(v);
   }
 
-  public java.math.BigDecimal cast_CHARARRAY_to_BIGDECIMAL(String v){
+  public java.math.BigDecimal cast_CHARARRAY_to_BIGDECIMAL(java.lang.String v){
     return new java.math.BigDecimal(v);
   }
 
@@ -905,27 +905,27 @@ public abstract class GeneratedPigExpression {
 
   // projection operators
   public boolean proj_BOOLEAN(org.apache.pig.data.Tuple t, int i) throws org.apache.pig.backend.executionengine.ExecException {
-    return (Boolean)t.get(i);
+    return (java.lang.Boolean)t.get(i);
   }
 
   public int proj_INT(org.apache.pig.data.Tuple t, int i) throws org.apache.pig.backend.executionengine.ExecException {
-    return (Integer)t.get(i);
+    return (java.lang.Integer)t.get(i);
   }
 
   public long proj_LONG(org.apache.pig.data.Tuple t, int i) throws org.apache.pig.backend.executionengine.ExecException {
-    return (Long)t.get(i);
+    return (java.lang.Long)t.get(i);
   }
 
   public float proj_FLOAT(org.apache.pig.data.Tuple t, int i) throws org.apache.pig.backend.executionengine.ExecException {
-    return (Float)t.get(i);
+    return (java.lang.Float)t.get(i);
   }
 
   public double proj_DOUBLE(org.apache.pig.data.Tuple t, int i) throws org.apache.pig.backend.executionengine.ExecException {
-    return (Double)t.get(i);
+    return (java.lang.Double)t.get(i);
   }
 
-  public String proj_CHARARRAY(org.apache.pig.data.Tuple t, int i) throws org.apache.pig.backend.executionengine.ExecException {
-    return (String)t.get(i);
+  public java.lang.String proj_CHARARRAY(org.apache.pig.data.Tuple t, int i) throws org.apache.pig.backend.executionengine.ExecException {
+    return (java.lang.String)t.get(i);
   }
 
   public org.apache.pig.data.DataBag proj_BAG(org.apache.pig.data.Tuple t, int i) throws org.apache.pig.backend.executionengine.ExecException {

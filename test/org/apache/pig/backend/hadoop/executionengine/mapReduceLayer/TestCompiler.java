@@ -25,11 +25,18 @@ public class TestCompiler {
         pigServer.setBatchOn();
         pigServer.registerQuery("A = LOAD 'in' USING mock.Storage();");
         pigServer.registerQuery("B = FOREACH A GENERATE $0 * $0 + $0;");
+        pigServer.registerQuery("C = FOREACH A GENERATE $0 - $0;");
+        pigServer.registerQuery("D = FILTER A BY $0 == 1 ;");
         pigServer.registerQuery("STORE B INTO 'out' USING mock.Storage();");
+        pigServer.registerQuery("STORE C INTO 'out2' USING mock.Storage();");
+        pigServer.registerQuery("STORE D INTO 'out3' USING mock.Storage();");
         List<ExecJob> jobs = pigServer.executeBatch();
-        assertEquals(1, jobs.size());
-        assertEquals(JOB_STATUS.COMPLETED, jobs.get(0).getStatus());
+        for (ExecJob job : jobs) {
+          assertEquals(JOB_STATUS.COMPLETED, job.getStatus());
+        }
         assertEquals(Arrays.asList(tuple(2), tuple(6)), data.get("out"));
+        assertEquals(Arrays.asList(tuple(0), tuple(0)), data.get("out2"));
+        assertEquals(Arrays.asList(tuple(1)), data.get("out3"));
         System.out.println(data.get("out"));
     }
 
