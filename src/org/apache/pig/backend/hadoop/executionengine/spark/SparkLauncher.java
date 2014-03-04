@@ -7,8 +7,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.Launcher;
 import org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler;
@@ -44,15 +48,18 @@ import org.apache.pig.backend.hadoop.executionengine.spark.converter.SortConvert
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.SplitConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.StoreConverter;
 import org.apache.pig.backend.hadoop.executionengine.spark.converter.UnionConverter;
+import org.apache.pig.data.SchemaTupleBackend;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.impl.PigContext;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.tools.pigstats.PigStats;
 import org.apache.pig.tools.pigstats.SparkStats;
-import org.python.google.common.collect.Lists;
 
-import spark.RDD;
-import spark.SparkContext;
+import org.apache.spark.rdd.RDD;
+import org.apache.spark.scheduler.JobLogger;
+import org.apache.spark.scheduler.StatsReportListener;
+import org.apache.spark.SparkContext;
+import org.apache.spark.api.java.JavaSparkContext;
 
 /**
  * @author billg
@@ -73,6 +80,10 @@ public class SparkLauncher extends Launcher {
     public PigStats launchPig(PhysicalPlan physicalPlan, String grpName, PigContext pigContext) throws Exception {
         LOG.info("!!!!!!!!!!  Launching Spark (woot) !!!!!!!!!!!!");
         LOG.debug(physicalPlan);
+        Configuration c = SparkUtil.newJobConf(pigContext);
+        c.set(PigConstants.LOCAL_CODE_DIR,System.getProperty("java.io.tmpdir"));
+
+        SchemaTupleBackend.initialize(c, pigContext);
 /////////
 // stolen from MapReduceLauncher
         MRCompiler mrCompiler = new MRCompiler(physicalPlan, pigContext);
@@ -109,11 +120,10 @@ public class SparkLauncher extends Launcher {
         Map<OperatorKey, RDD<Tuple>> rdds = new HashMap<OperatorKey, RDD<Tuple>>();
 
         SparkStats stats = new SparkStats();
-
-        LinkedList<POStore> stores = PlanHelper.getStores(physicalPlan);
+        LinkedList<POStore> stores = PlanHelper.getPhysicalOperators(physicalPlan, POStore.class);
         for (POStore poStore : stores) {
             physicalToRDD(physicalPlan, poStore, rdds, convertMap);
-            stats.addOutputInfo(poStore, 1, 1, true); // TODO: use real values
+            stats.addOutputInfo(poStore, 1, 1, true, c); // TODO: use real values
         }
 
         return stats;
@@ -129,12 +139,16 @@ public class SparkLauncher extends Launcher {
 
             String sparkHome = System.getenv("SPARK_HOME"); // It's okay if this is null for local mode
             String sparkJarsSetting = System.getenv("SPARK_JARS");
+            String pigJar = System.getenv("SPARK_PIG_JAR");
+            if(pigJar == null) {
+                pigJar = "build/pig-0.12.0-SNAPSHOT-withouthadoop.jar";
+            }
             String[] sparkJars = sparkJarsSetting == null ? new String[]{} : sparkJarsSetting.split(",");
 
             // TODO: Don't hardcode this JAR
-            List<String> jars = Lists.asList("build/pig-0.11.0-SNAPSHOT-withdependencies.jar", sparkJars);
+            List<String> jars = Lists.asList(pigJar, sparkJars);
 
-            if (!master.startsWith("local")) {
+            if (!master.startsWith("local") && !master.equals("yarn-client")) {
                 // Check that we have the Mesos native library and Spark home are set
                 if (sparkHome == null) {
                     System.err.println("You need to set SPARK_HOME to run on a Mesos cluster!");
@@ -144,20 +158,23 @@ public class SparkLauncher extends Launcher {
                     System.err.println("You need to set MESOS_NATIVE_LIBRARY to run on a Mesos cluster!");
                     throw new PigException("MESOS_NATIVE_LIBRARY is not set");
                 }
+                
+                // Tell Spark to use Mesos in coarse-grained mode (only affects Spark 0.6+; no impact on others)
+                System.setProperty("spark.mesos.coarse", "true");
             }
-
-            // Tell Spark to use Mesos in coarse-grained mode (only affects Spark 0.6+; no impact on others)
-            System.setProperty("spark.mesos.coarse", "true");
-
+            
             // For coarse-grained Mesos mode, tell it an upper bound on how many cores to grab in total;
             // we conservatively set this to 32 unless the user set the SPARK_MAX_CPUS environment variable.
-            int maxCores = 32;
             if (System.getenv("SPARK_MAX_CPUS") != null) {
+                int maxCores = 32;
                 maxCores = Integer.parseInt(System.getenv("SPARK_MAX_CPUS"));
+                System.setProperty("spark.cores.max", "" + maxCores);
             }
-            System.setProperty("spark.cores.max", "" + maxCores);
-
-            sparkContext = new SparkContext(master, "Spork", sparkHome, SparkUtil.toScalaSeq(jars));
+            
+            JavaSparkContext javaContext = new JavaSparkContext(master, "Spork", sparkHome, jars.toArray(new String[jars.size()]));
+            sparkContext = javaContext.sc();
+            sparkContext.addSparkListener(new StatsReportListener());
+            sparkContext.addSparkListener(new JobLogger());
             cacheConverter = new CacheConverter();
         }
     }
@@ -192,7 +209,7 @@ public class SparkLauncher extends Launcher {
         }
 
         LOG.info("Converting operator " + physicalOperator.getClass().getSimpleName()+" "+physicalOperator);
-        nextRDD = (RDD<Tuple>)converter.convert(predecessorRdds, physicalOperator);
+        nextRDD = converter.convert(predecessorRdds, physicalOperator);
 
         if (POStore.class.equals(physicalOperator.getClass())) {
             return;

@@ -14,7 +14,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 
 import scala.runtime.AbstractFunction1;
-import spark.RDD;
+import org.apache.spark.rdd.RDD;
 
 @SuppressWarnings({ "serial"})
 public class LocalRearrangeConverter implements POConverter<Tuple, Tuple, POLocalRearrange> {
@@ -44,7 +44,7 @@ public class LocalRearrangeConverter implements POConverter<Tuple, Tuple, POLoca
             try {
                 physicalOperator.setInputs(null);
                 physicalOperator.attachInput(t);
-                result = physicalOperator.getNext((Tuple)null);
+                result = physicalOperator.getNextTuple();
 
                 if (result == null) {
                     throw new RuntimeException("Null response found for LocalRearange on tuple: " + t);

@@ -61,6 +61,7 @@ import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.classification.InterfaceAudience;
 import org.apache.pig.classification.InterfaceStability;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.util.JarManager;
 import org.apache.pig.impl.util.LogUtils;
@@ -114,13 +115,16 @@ public class Main {
        Attributes attr=null;
        try {
             String findContainingJar = JarManager.findContainingJar(Main.class);
-            JarFile jar = new JarFile(findContainingJar);
-            final Manifest manifest = jar.getManifest();
-            final Map<String,Attributes> attrs = manifest.getEntries();
-            attr = attrs.get("org/apache/pig");
+            if (findContainingJar != null) {
+                JarFile jar = new JarFile(findContainingJar);
+                final Manifest manifest = jar.getManifest();
+                final Map<String,Attributes> attrs = manifest.getEntries();
+                attr = attrs.get("org/apache/pig");
+            } else {
+                log.info("Unable to read pigs manifest file as we are not running from a jar, version information unavailable");
+            }
         } catch (Exception e) {
-            log.warn("Unable to read pigs manifest file, version information unavailable");
-            log.warn("Exception: "+e);
+            log.warn("Unable to read pigs manifest file, version information unavailable", e);
         }
         if (attr!=null) {
             version = attr.getValue("Implementation-Version");
@@ -183,7 +187,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
         boolean embedded = false;
         List<String> params = new ArrayList<String>();
         List<String> paramFiles = new ArrayList<String>();
-        HashSet<String> optimizerRules = new HashSet<String>();
+        HashSet<String> disabledOptimizerRules = new HashSet<String>();
 
         CmdLineParser opts = new CmdLineParser(pigArgs);
         opts.registerOpt('4', "log4jconf", CmdLineParser.ValueExpected.REQUIRED);
@@ -313,7 +317,7 @@ static int run(String args[], PigProgressNotificationListener listener) {
                 break;
 
             case 't':
-            	optimizerRules.add(opts.getValStr());
+                disabledOptimizerRules.add(opts.getValStr());
                 break;
 
             case 'v':
@@ -388,15 +392,11 @@ static int run(String args[], PigProgressNotificationListener listener) {
 
         if( ! Boolean.valueOf(properties.getProperty(PROP_FILT_SIMPL_OPT, "false"))){
             //turn off if the user has not explicitly turned on this optimization
-            optimizerRules.add("FilterLogicExpressionSimplifier");
+            disabledOptimizerRules.add("FilterLogicExpressionSimplifier");
         }
 
-        if(optimizerRules.size() > 0) {
-            pigContext.getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
-        }
-
-        if (properties.get("udf.import.list")!=null)
-            PigContext.initializeImportList((String)properties.get("udf.import.list"));
+        pigContext.getProperties().setProperty(PigImplConstants.PIG_OPTIMIZER_RULES_KEY,
+                ObjectSerializer.serialize(disabledOptimizerRules));
 
         PigContext.setClassLoader(pigContext.createCl(null));
 
@@ -412,6 +412,11 @@ static int run(String args[], PigProgressNotificationListener listener) {
         switch (mode) {
 
         case FILE: {
+            String remainders[] = opts.getRemainingArgs();
+            if (remainders != null) {
+                pigContext.getProperties().setProperty(PigContext.PIG_CMD_ARGS_REMAINDERS,
+                        ObjectSerializer.serialize(remainders));
+            }
             FileLocalizer.FetchFileRet localFileRet = FileLocalizer.fetchFile(properties, file);
             if (localFileRet.didFetch) {
                 properties.setProperty("pig.jars.relative.to.dfs", "true");
@@ -494,6 +499,8 @@ static int run(String args[], PigProgressNotificationListener listener) {
                 if (i != 0) sb.append(' ');
                 sb.append(remainders[i]);
             }
+
+            sb.append('\n');
 
             scriptState.setScript(sb.toString());
 
@@ -867,6 +874,8 @@ public static void usage()
         System.out.println("    -F, -stop_on_failure - Aborts execution on the first failed job; default is off");
         System.out.println("    -M, -no_multiquery - Turn multiquery optimization off; default is on");
         System.out.println("    -P, -propertyFile - Path to property file");
+        System.out.println("    -printCmdDebug - Overrides anything else and prints the actual command used to run Pig, including");
+        System.out.println("                     any environment variables that are set by the pig command.");
 }
 
 public static void printProperties(){
@@ -905,6 +914,8 @@ public static void printProperties(){
         System.out.println("        pig.additional.jars=<colon seperated list of jars>. Used in place of register command.");
         System.out.println("        udf.import.list=<comma seperated list of imports>. Used to avoid package names in UDF.");
         System.out.println("        stop.on.failure=true|false; default is false. Set to true to terminate on the first error.");
+        System.out.println("        pig.datetime.default.tz=<UTC time offset>. e.g. +08:00. Default is the default timezone of the host.");
+        System.out.println("            Determines the timezone used to handle datetime datatype and UDFs. ");
 	System.out.println("Additionally, any Hadoop property can be specified.");
 }
 
@@ -917,11 +928,11 @@ private static String validateLogFile(String logFileName, String scriptName) {
             String scriptFileAbsPath;
             try {
                 scriptFileAbsPath = scriptFile.getCanonicalPath();
+                strippedDownScriptName = getFileFromCanonicalPath(scriptFileAbsPath);
             } catch (IOException ioe) {
                 log.warn("Could not compute canonical path to the script file " + ioe.getMessage());
-                return null;
+                strippedDownScriptName = null;
             }
-            strippedDownScriptName = getFileFromCanonicalPath(scriptFileAbsPath);
         }
     }
 

@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.joda.time.DateTimeZone;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -60,7 +62,6 @@ import org.apache.pig.tools.pigstats.PigStatusReporter;
  * is located in $PIG_HOME/shims.
 **/
 public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableWritable, Writable> {
-    private static final Tuple DUMMYTUPLE = null;
 
     private final Log log = LogFactory.getLog(getClass());
     
@@ -170,7 +171,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
         pigContext = (PigContext)ObjectSerializer.deserialize(job.get("pig.pigContext"));
 
         // This attempts to fetch all of the generated code from the distributed cache, and resolve it
-        SchemaTupleBackend.initialize(job, pigContext.getExecType());
+        SchemaTupleBackend.initialize(job, pigContext);
 
         if (pigContext.getLog4jProperties()!=null)
             PropertyConfigurator.configure(pigContext.getLog4jProperties());
@@ -178,7 +179,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
         if (mp == null)
             mp = (PhysicalPlan) ObjectSerializer.deserialize(
                 job.get("pig.mapPlan"));
-        stores = PlanHelper.getStores(mp);
+        stores = PlanHelper.getPhysicalOperators(mp, POStore.class);
         
         // To be removed
         if(mp.isEmpty())
@@ -211,6 +212,12 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
         PigStatusReporter.setContext(context);
  
         log.info("Aliases being processed per job phase (AliasName[line,offset]): " + job.get("pig.alias.location"));
+        
+        String dtzStr = PigMapReduce.sJobConfInternal.get().get("pig.datetime.default.tz");
+        if (dtzStr != null && dtzStr.length() > 0) {
+            // ensure that the internal timezone is uniformly in UTC offset style
+            DateTimeZone.setDefault(DateTimeZone.forOffsetMillis(DateTimeZone.forID(dtzStr).getOffset(null)));
+        }
     }
     
     /**
@@ -272,7 +279,7 @@ public abstract class PigGenericMapBase extends Mapper<Text, Tuple, PigNullableW
 
     protected void runPipeline(PhysicalOperator leaf) throws IOException, InterruptedException {
         while(true){
-            Result res = leaf.getNext(DUMMYTUPLE);
+            Result res = leaf.getNextTuple();
             if(res.returnStatus==POStatus.STATUS_OK){
                 collect(outputCollector,(Tuple)res.result);
                 continue;

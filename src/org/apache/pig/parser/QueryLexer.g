@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 /**
  * Lexer file for Pig Parser
  */
@@ -31,8 +31,8 @@ package org.apache.pig.parser;
 @Override
 public void reportError(RecognitionException e) {
     super.reportError( e );
-    
-    // The method of this signature doesn't permit checked exception. Here we have to 
+
+    // The method of this signature doesn't permit checked exception. Here we have to
     // throw a unchecked execption in order to stop at the first error.
     // For more information, visit http://www.antlr.org/wiki/pages/viewpage.action?pageId=5341217.
     StringBuilder sb = new StringBuilder();
@@ -60,6 +60,9 @@ public String getErrorHeader(RecognitionException ex) {
 VOID    : 'VOID'
 ;
 
+NULL    : 'NULL'
+;
+
 IMPORT  : 'IMPORT'
 ;
 
@@ -81,7 +84,19 @@ FOREACH : 'FOREACH'
 ORDER   :  'ORDER'
 ;
 
+RANK   :  'RANK'
+;
+
+DENSE   :  'DENSE'
+;
+
 CUBE    : 'CUBE'
+;
+
+ROLLUP	: 'ROLLUP'
+;
+
+INVOKE  : 'INVOKE'
 ;
 
 DISTINCT : 'DISTINCT'
@@ -174,7 +189,16 @@ LONG : 'LONG'
 FLOAT : 'FLOAT'
 ;
 
+BIGDECIMAL : 'BIGDECIMAL'
+;
+
+BIGINTEGER : 'BIGINTEGER'
+;
+
 DOUBLE : 'DOUBLE'
+;
+
+DATETIME : 'DATETIME'
 ;
 
 CHARARRAY : 'CHARARRAY'
@@ -243,6 +267,21 @@ RIGHT : 'RIGHT'
 FULL : 'FULL'
 ;
 
+CASE : 'CASE'
+;
+
+WHEN : 'WHEN'
+;
+
+THEN : 'THEN'
+;
+
+ELSE : 'ELSE'
+;
+
+END : 'END'
+;
+
 STR_OP_EQ : 'EQ'
 ;
 
@@ -264,12 +303,15 @@ STR_OP_NE : 'NEQ'
 STR_OP_MATCHES : 'MATCHES'
 ;
 
+IN : 'IN'
+;
+
 TRUE : 'TRUE'
 ;
 
 FALSE : 'FALSE'
 ;
-    
+
 NUM_OP_EQ : '=='
 ;
 
@@ -282,18 +324,18 @@ NUM_OP_LTE : '<='
 NUM_OP_GT : '>'
 ;
 
-NUM_OP_GTE : '>=' 
+NUM_OP_GTE : '>='
 ;
 
 NUM_OP_NE : '!='
 ;
-    
+
 fragment DIGIT : '0'..'9'
 ;
 
 fragment LETTER : 'A'..'Z'
 ;
-    
+
 fragment SPECIALCHAR : '_'
 ;
 
@@ -303,26 +345,36 @@ fragment ID: LETTER ( DIGIT | LETTER | SPECIALCHAR )*
 DCOLON : '::'
 ;
 
-IDENTIFIER_L : ( ID DCOLON ) => ( ID DCOLON IDENTIFIER_L )
-           | ID
+IDENTIFIER
+    @after {
+        if("null".equalsIgnoreCase(getText())){
+            state.type = NULL;
+        }
+    } : ( ID DCOLON ) => ( ID DCOLON IDENTIFIER ) | ID
 ;
 
-fragment FLOATINGPOINT : INTEGER ( PERIOD INTEGER )? | PERIOD INTEGER 
+fragment FLOATINGPOINT : INTEGER ( PERIOD INTEGER )? | PERIOD INTEGER
 ;
-    
+
 INTEGER: ( DIGIT )+
 ;
 
-LONGINTEGER: INTEGER ( 'L' )?
+LONGINTEGER: INTEGER 'L'
 ;
 
 DOLLARVAR : DOLLAR INTEGER
 ;
-    
+
 DOUBLENUMBER : FLOATINGPOINT ( 'E' ( MINUS | PLUS )? INTEGER )?
 ;
-    
-FLOATNUMBER : DOUBLENUMBER ( 'F' )?
+
+BIGDECIMALNUMBER : DOUBLENUMBER 'BD'
+;
+
+BIGINTEGERNUMBER : INTEGER 'BI'
+;
+
+FLOATNUMBER : DOUBLENUMBER 'F'
 ;
 
 QUOTEDSTRING :  '\'' (   ( ~ ( '\'' | '\\' | '\n' | '\r' ) )
@@ -347,7 +399,7 @@ MULTILINE_QUOTEDSTRING :  '\'' (   ( ~ ( '\'' | '\\' ) )
 
 EXECCOMMAND : '`' ( ~( '`' ) )* '`'
 ;
-    
+
 STAR : '*'
 ;
 
@@ -356,10 +408,10 @@ COLON : ':'
 
 DOLLAR : '$'
 ;
-            
+
 WS  :  ( ' ' | '\r' | '\t' | '\u000C' | '\n' ) { $channel = HIDDEN; }
 ;
-    
+
 SL_COMMENT : '--' ( ~( '\r' | '\n' ) )* { $channel = HIDDEN; }
 ;
 
@@ -368,10 +420,10 @@ ML_COMMENT : '/*' ( options { greedy=false; } : . )* '*/' { $channel = HIDDEN; }
 
 SEMI_COLON : ';'
 ;
-    
+
 LEFT_PAREN : '('
 ;
-    
+
 RIGHT_PAREN : ')'
 ;
 
@@ -383,7 +435,7 @@ RIGHT_CURLY : '}'
 
 LEFT_BRACKET : '['
 ;
-    
+
 RIGHT_BRACKET : ']'
 ;
 
@@ -415,4 +467,13 @@ MINUS : '-'
 ;
 
 QMARK : '?'
+;
+
+ARROBA : '@'
+;
+
+AMPERSAND : '&'
+;
+
+FAT_ARROW : '=>'
 ;

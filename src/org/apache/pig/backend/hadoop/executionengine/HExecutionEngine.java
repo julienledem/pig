@@ -30,19 +30,24 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Lists;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.pig.ExecType;
+import org.apache.pig.PigConstants;
 import org.apache.pig.PigException;
 import org.apache.pig.backend.datastorage.DataStorage;
 import org.apache.pig.backend.executionengine.ExecException;
+import org.apache.pig.backend.hadoop.datastorage.ConfigurationUtil;
 import org.apache.pig.backend.hadoop.datastorage.HDataStorage;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.PhysicalOperator;
 import org.apache.pig.backend.hadoop.executionengine.physicalLayer.plans.PhysicalPlan;
 import org.apache.pig.impl.PigContext;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.plan.OperatorKey;
 import org.apache.pig.impl.util.ObjectSerializer;
@@ -139,21 +144,27 @@ public class HExecutionEngine {
         // All of the above is accomplished in the method call below
            
         JobConf jc = null;
-        if ( this.pigContext.getExecType() == ExecType.MAPREDUCE ) {
-            
-            // Check existence of hadoop-site.xml or core-site.xml
-            Configuration testConf = new Configuration();
-            ClassLoader cl = testConf.getClassLoader();
-            URL hadoop_site = cl.getResource( HADOOP_SITE );
-            URL core_site = cl.getResource( CORE_SITE );
-            
-            if( hadoop_site == null && core_site == null ) {
-                throw new ExecException("Cannot find hadoop configurations in classpath (neither hadoop-site.xml nor core-site.xml was found in the classpath)." +
-                        " If you plan to use local mode, please put -x local option in command line", 
-                        4010);
+        if ( this.pigContext.getExecType() != ExecType.LOCAL ) {
+            // Check existence of user provided configs
+            String isHadoopConfigsOverriden = properties.getProperty("pig.use.overriden.hadoop.configs");
+            if (isHadoopConfigsOverriden != null && isHadoopConfigsOverriden.equals("true")) {
+                jc = new JobConf(ConfigurationUtil.toConfiguration(properties));
             }
+            else {
+                // Check existence of hadoop-site.xml or core-site.xml in classpath
+                // if user provided confs are not being used
+                Configuration testConf = new Configuration();
+                ClassLoader cl = testConf.getClassLoader();
+                URL hadoop_site = cl.getResource( HADOOP_SITE );
+                URL core_site = cl.getResource( CORE_SITE );
 
-            jc = new JobConf();
+                if( hadoop_site == null && core_site == null ) {
+                        throw new ExecException("Cannot find hadoop configurations in classpath (neither hadoop-site.xml nor core-site.xml was found in the classpath)." +
+                                " If you plan to use local mode, please put -x local option in command line", 
+                                4010);
+                }
+                jc = new JobConf();
+            }
             jc.addResource("pig-cluster-hadoop-site.xml");
             jc.addResource(YARN_SITE);
             
@@ -167,20 +178,20 @@ public class HExecutionEngine {
             recomputeProperties(jc, properties);
         } else {
             // If we are running in local mode we dont read the hadoop conf file
+            properties.setProperty("mapreduce.framework.name", "local");
+            properties.setProperty(JOB_TRACKER_LOCATION, LOCAL );
+            properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
+            properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
+
             jc = new JobConf(false);
             jc.addResource("core-default.xml");
             jc.addResource("mapred-default.xml");
             jc.addResource("yarn-default.xml");
             recomputeProperties(jc, properties);
-            
-            properties.setProperty("mapreduce.framework.name", "local");
-            properties.setProperty(JOB_TRACKER_LOCATION, LOCAL );
-            properties.setProperty(FILE_SYSTEM_LOCATION, "file:///");
-            properties.setProperty(ALTERNATIVE_FILE_SYSTEM_LOCATION, "file:///");
         }
-        
-        cluster = properties.getProperty(JOB_TRACKER_LOCATION);
-        nameNode = properties.getProperty(FILE_SYSTEM_LOCATION);
+
+        cluster = jc.get(JOB_TRACKER_LOCATION);
+        nameNode = jc.get(FILE_SYSTEM_LOCATION);
         if (nameNode==null)
             nameNode = (String)pigContext.getProperties().get(ALTERNATIVE_FILE_SYSTEM_LOCATION);
 
@@ -233,54 +244,58 @@ public class HExecutionEngine {
             pod.visit();
         }
         
-        DanglingNestedNodeRemover DanglingNestedNodeRemover = new DanglingNestedNodeRemover( plan );
-        DanglingNestedNodeRemover.visit();
-        
         UidResetter uidResetter = new UidResetter( plan );
         uidResetter.visit();
         
         SchemaResetter schemaResetter = new SchemaResetter( plan, true /*skip duplicate uid check*/ );
         schemaResetter.visit();
         
-        HashSet<String> optimizerRules = null;
+        HashSet<String> disabledOptimizerRules;
         try {
-            optimizerRules = (HashSet<String>) ObjectSerializer
+            disabledOptimizerRules = (HashSet<String>) ObjectSerializer
                     .deserialize(pigContext.getProperties().getProperty(
-                            "pig.optimizer.rules"));
+                            PigImplConstants.PIG_OPTIMIZER_RULES_KEY));
         } catch (IOException ioe) {
             int errCode = 2110;
             String msg = "Unable to deserialize optimizer rules.";
             throw new FrontendException(msg, errCode, PigException.BUG, ioe);
         }
-        
+        if (disabledOptimizerRules == null) {
+            disabledOptimizerRules = new HashSet<String>();
+        }
+
+        String pigOptimizerRulesDisabled = this.pigContext.getProperties().getProperty(
+                PigConstants.PIG_OPTIMIZER_RULES_DISABLED_KEY);
+        if (pigOptimizerRulesDisabled != null) {
+            disabledOptimizerRules.addAll(Lists.newArrayList((Splitter.on(",").split(
+                    pigOptimizerRulesDisabled))));
+        }
+
         if (pigContext.inIllustrator) {
-            // disable MergeForEach in illustrator
-            if (optimizerRules == null)
-                optimizerRules = new HashSet<String>();
-            optimizerRules.add("MergeForEach");
-            optimizerRules.add("PartitionFilterOptimizer");
-            optimizerRules.add("LimitOptimizer");
-            optimizerRules.add("SplitFilter");
-            optimizerRules.add("PushUpFilter");
-            optimizerRules.add("MergeFilter");
-            optimizerRules.add("PushDownForEachFlatten");
-            optimizerRules.add("ColumnMapKeyPrune");
-            optimizerRules.add("AddForEach");
-            optimizerRules.add("GroupByConstParallelSetter");
+            disabledOptimizerRules.add("MergeForEach");
+            disabledOptimizerRules.add("PartitionFilterOptimizer");
+            disabledOptimizerRules.add("LimitOptimizer");
+            disabledOptimizerRules.add("SplitFilter");
+            disabledOptimizerRules.add("PushUpFilter");
+            disabledOptimizerRules.add("MergeFilter");
+            disabledOptimizerRules.add("PushDownForEachFlatten");
+            disabledOptimizerRules.add("ColumnMapKeyPrune");
+            disabledOptimizerRules.add("AddForEach");
+            disabledOptimizerRules.add("GroupByConstParallelSetter");
         }
 
         StoreAliasSetter storeAliasSetter = new StoreAliasSetter( plan );
         storeAliasSetter.visit();
         
         // run optimizer
-        LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer( plan, 100, optimizerRules );
+        LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(plan, 100, disabledOptimizerRules);
         optimizer.optimize();
         
         // compute whether output data is sorted or not
         SortInfoSetter sortInfoSetter = new SortInfoSetter( plan );
         sortInfoSetter.visit();
         
-        if (pigContext.inExplain==false) {
+        if (!pigContext.inExplain) {
             // Validate input/output file. Currently no validation framework in
             // new logical plan, put this validator here first.
             // We might decide to move it out to a validator framework in future

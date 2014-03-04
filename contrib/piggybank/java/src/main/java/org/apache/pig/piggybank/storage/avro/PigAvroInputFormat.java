@@ -20,8 +20,10 @@ package org.apache.pig.piggybank.storage.avro;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.apache.avro.Schema;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -33,11 +35,20 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
 /**
  * The InputFormat for avro data.
- * 
+ *
  */
 public class PigAvroInputFormat extends FileInputFormat<NullWritable, Writable> {
 
-    private Schema schema = null;  /* avro schema */
+    private Schema readerSchema = null;  /* avro schema */
+    /* establish is multiple_schema flag is used to pass this to the RecordReader*/
+    private boolean useMultipleSchemas = false;
+    private boolean ignoreBadFiles = false; /* whether ignore corrupted files during load */
+
+    /* if multiple avro record schemas are merged, this map associates each input
+     * record with a remapping of its fields relative to the merged schema. please
+     * see AvroStorageUtils.getSchemaToMergedSchemaMap() for more details.
+     */
+    private Map<Path, Map<Integer, Integer>> schemaToMergedSchemaMap;
 
     /**
      * empty constructor
@@ -46,15 +57,23 @@ public class PigAvroInputFormat extends FileInputFormat<NullWritable, Writable> 
     }
 
     /**
-     * constructor called by AvroStorage to pass in schema
-     * @param s input data schema
+     * constructor called by AvroStorage to pass in schema and ignoreBadFiles.
+     * @param readerSchema reader schema
+     * @param ignoreBadFiles whether ignore corrupted files during load
+     * @param schemaToMergedSchemaMap map that associates each input record
+     * with a remapping of its fields relative to the merged schema
      */
-    public PigAvroInputFormat(Schema s) {
-        schema = s;
+    public PigAvroInputFormat(Schema readerSchema, boolean ignoreBadFiles,
+            Map<Path, Map<Integer, Integer>> schemaToMergedSchemaMap,
+            boolean useMultipleSchemas) {
+        this.readerSchema = readerSchema;
+        this.ignoreBadFiles = ignoreBadFiles;
+        this.schemaToMergedSchemaMap = schemaToMergedSchemaMap;
+        this.useMultipleSchemas = useMultipleSchemas;
     }
 
     /**
-     * Create and return an avro record reader. 
+     * Create and return an avro record reader.
      * It uses the input schema passed in to the
      * constructor.
      */
@@ -63,7 +82,8 @@ public class PigAvroInputFormat extends FileInputFormat<NullWritable, Writable> 
     createRecordReader(InputSplit split, TaskAttemptContext context)
     throws IOException,  InterruptedException {
         context.setStatus(split.toString());
-        return new PigAvroRecordReader(context, (FileSplit) split, schema);
+        return new PigAvroRecordReader(context, (FileSplit) split, readerSchema,
+                ignoreBadFiles, schemaToMergedSchemaMap, useMultipleSchemas);
     }
 
 }

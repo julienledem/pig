@@ -17,7 +17,7 @@ import org.apache.pig.impl.io.NullableTuple;
 import org.apache.pig.impl.io.PigNullableWritable;
 
 import scala.runtime.AbstractFunction1;
-import spark.RDD;
+import org.apache.spark.rdd.RDD;
 
 @SuppressWarnings({ "serial"})
 public class PackageConverter implements POConverter<Tuple, Tuple, POPackage> {
@@ -80,7 +80,7 @@ public class PackageConverter implements POConverter<Tuple, Tuple, POPackage> {
                 };
                 physicalOperator.setInputs(null);
                 physicalOperator.attachInput(key, iterator);
-                result = physicalOperator.getNext((Tuple)null);
+                result = physicalOperator.getNextTuple();
             } catch (ExecException e) {
                 throw new RuntimeException("Couldn't do Package on tuple: " + t, e);
             }

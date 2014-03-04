@@ -93,7 +93,7 @@ public class POLoad extends PhysicalOperator {
         loader = new ReadToEndLoader((LoadFunc)
                 PigContext.instantiateFuncFromSpec(lFile.getFuncSpec()), 
                 ConfigurationUtil.toConfiguration(pc.getProperties()), 
-                lFile.getFileName(),0);
+                lFile.getFileName(),0, signature);
     }
     
     /**
@@ -115,7 +115,7 @@ public class POLoad extends PhysicalOperator {
      *          of EOP and hence the tearDown of connection
      */
     @Override
-    public Result getNext(Tuple t) throws ExecException {
+    public Result getNextTuple() throws ExecException {
         if(!setUpDone && lFile!=null){
             try {
                 setUp();

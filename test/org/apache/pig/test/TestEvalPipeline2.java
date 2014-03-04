@@ -45,6 +45,7 @@ import org.apache.pig.data.DataType;
 import org.apache.pig.data.DefaultBagFactory;
 import org.apache.pig.data.Tuple;
 import org.apache.pig.data.TupleFactory;
+import org.apache.pig.impl.PigImplConstants;
 import org.apache.pig.impl.io.FileLocalizer;
 import org.apache.pig.impl.logicalLayer.FrontendException;
 import org.apache.pig.impl.logicalLayer.schema.Schema;
@@ -349,7 +350,7 @@ public class TestEvalPipeline2 {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(tmpFile.toString(), pigServer
+                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
                         .getPigContext()) + "' AS (num:int);");
         pigServer.registerQuery("B = order A by num parallel 2;");
         pigServer.registerQuery("C = limit B 10;");
@@ -378,7 +379,7 @@ public class TestEvalPipeline2 {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(tmpFile.toString(), pigServer
+                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
                         .getPigContext()) + "' AS (num:int);");
         pigServer.registerQuery("B = order A by num parallel 2;");
         pigServer.registerQuery("C = limit B 10;");
@@ -411,7 +412,7 @@ public class TestEvalPipeline2 {
         ps.close();
 
         pigServer.registerQuery("A = LOAD '"
-                + Util.generateURI(tmpFile.toString(), pigServer
+                + Util.generateURI(Util.encodeEscape(tmpFile.toString()), pigServer
                         .getPigContext()) + "' AS (num:int);");
         pigServer.registerQuery("B = order A by num desc parallel 2;");
         pigServer.registerQuery("C = limit B 10;");
@@ -458,8 +459,8 @@ public class TestEvalPipeline2 {
         ps2.println("2\t2");
         ps2.close();
 
-        pigServer.registerQuery("A = LOAD '" + Util.generateURI(tmpFile1.toString(), pigServer.getPigContext()) + "' AS (a0, a1, a2);");
-        pigServer.registerQuery("B = LOAD '" + Util.generateURI(tmpFile2.toString(), pigServer.getPigContext()) + "' AS (b0, b1);");
+        pigServer.registerQuery("A = LOAD '" + Util.generateURI(Util.encodeEscape(tmpFile1.toString()), pigServer.getPigContext()) + "' AS (a0, a1, a2);");
+        pigServer.registerQuery("B = LOAD '" + Util.generateURI(Util.encodeEscape(tmpFile2.toString()), pigServer.getPigContext()) + "' AS (b0, b1);");
         pigServer.registerQuery("C = LIMIT B 100;");
         pigServer.registerQuery("D = COGROUP C BY b0, A BY a0 PARALLEL 2;");
         Iterator<Tuple> iter = pigServer.openIterator("D");
@@ -1524,7 +1525,9 @@ public class TestEvalPipeline2 {
         
         HashSet<String> optimizerRules = new HashSet<String>();
         optimizerRules.add("MergeForEach");
-        pigServer.getPigContext().getProperties().setProperty("pig.optimizer.rules", ObjectSerializer.serialize(optimizerRules));
+        pigServer.getPigContext().getProperties().setProperty(
+                PigImplConstants.PIG_OPTIMIZER_RULES_KEY,
+                ObjectSerializer.serialize(optimizerRules));
         
         Util.createInputFile(cluster, "table_testProjectNullBag", input1);
         pigServer.registerQuery("a = load 'table_testProjectNullBag' as (a0:bag{}, a1:int);");
@@ -1540,7 +1543,7 @@ public class TestEvalPipeline2 {
         
         Assert.assertFalse(iter.hasNext());
         
-        pigServer.getPigContext().getProperties().remove("pig.optimizer.rules");
+        pigServer.getPigContext().getProperties().remove(PigImplConstants.PIG_OPTIMIZER_RULES_KEY);
     }
     
     // See PIG-2159

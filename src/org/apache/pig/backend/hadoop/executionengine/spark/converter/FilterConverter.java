@@ -11,7 +11,7 @@ import org.apache.pig.backend.hadoop.executionengine.spark.SparkUtil;
 import org.apache.pig.data.Tuple;
 
 import scala.runtime.AbstractFunction1;
-import spark.RDD;
+import org.apache.spark.rdd.RDD;
 
 /**
  * Converter that converts an RDD to a filtered RRD using POFilter
@@ -43,7 +43,7 @@ public class FilterConverter implements POConverter<Tuple, Tuple, POFilter> {
             try {
                 poFilter.setInputs(null);
                 poFilter.attachInput(v1);
-                result = poFilter.getNext(v1);
+                result = poFilter.getNextTuple();
             } catch (ExecException e) {
                 throw new RuntimeException("Couldn't filter tuple", e);
             }
